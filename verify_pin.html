@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Origin-PT — Enter Code</title>
+  <style>
+    :root {
+      --bg:     #0a0a0a; --surface: #111111; --border: #1f1f1f; --bdh: #333;
+      --text:   #ededed; --muted:   #666666; --faint:  #2e2e2e;
+      --accent: #5865f2; --ok: #16a34a; --err: #dc2626;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      display: flex; flex-direction: column;
+      font-size: 14px; -webkit-font-smoothing: antialiased;
+    }
+    header {
+      height: 56px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 24px;
+      background: rgba(10,10,10,.85); backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .logo { display: flex; align-items: center; gap: 9px; text-decoration: none; color: var(--text); font-weight: 600; font-size: 15px; }
+    .logo-mark { width: 24px; height: 24px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 16px; }
+
+    .card {
+      width: 100%; max-width: 400px;
+      border: 1px solid var(--border); border-radius: 12px;
+      background: var(--surface); padding: 36px 32px;
+      animation: up .2s ease both;
+    }
+
+    .steps { display: flex; gap: 6px; margin-bottom: 28px; }
+    .dot { height: 3px; flex: 1; border-radius: 2px; background: var(--faint); }
+    .dot.done   { background: var(--ok); }
+    .dot.active { background: var(--accent); }
+
+    h1 { font-size: 20px; font-weight: 600; letter-spacing: -.3px; margin-bottom: 8px; }
+    .sub { color: var(--muted); font-size: 13px; line-height: 1.65; margin-bottom: 28px; }
+
+    .pin-row {
+      display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;
+    }
+    .pin-cell {
+      width: 46px; height: 54px; flex: 0 0 46px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 9px;
+      font-size: 22px; font-weight: 700; text-align: center; color: var(--text);
+      font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+      outline: none; transition: border-color .15s, box-shadow .15s;
+      caret-color: transparent; -moz-appearance: textfield;
+    }
+    .pin-cell::-webkit-outer-spin-button,
+    .pin-cell::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .pin-cell:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(88,101,242,.15); }
+    .pin-cell.filled { border-color: var(--bdh); }
+
+    .btn {
+      width: 100%; padding: 11px 16px; border-radius: 7px;
+      font-size: 14px; font-weight: 500; cursor: pointer; border: none;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity .15s, transform .1s; margin-top: 4px;
+    }
+    .btn-solid { background: var(--text); color: var(--bg); }
+    .btn-solid:hover { opacity: .85; }
+    .btn-solid:active { transform: scale(.98); }
+    .btn-solid:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+    .spin {
+      width: 15px; height: 15px;
+      border: 2px solid rgba(0,0,0,.15); border-top-color: var(--bg);
+      border-radius: 50%; animation: rot .65s linear infinite; display: none;
+    }
+
+    .msg { border-radius: 7px; padding: 10px 13px; font-size: 13px; margin-top: 12px; display: none; }
+    .msg.err { background: rgba(220,38,38,.1); border: 1px solid rgba(220,38,38,.25); color: #f87171; }
+
+    .resend { font-size: 12px; color: var(--muted); margin-top: 14px; text-align: center; }
+    .resend a { color: var(--muted); text-decoration: underline; cursor: pointer; }
+    .resend a:hover { color: var(--text); }
+
+    .ok-wrap { text-align: center; }
+    .ok-icon {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: rgba(22,163,74,.1); border: 1px solid rgba(22,163,74,.25);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px; font-size: 28px;
+    }
+
+    .sec { display: none; }
+    .sec.on { display: block; }
+
+    footer { text-align: center; padding: 28px 16px; color: var(--faint); font-size: 11px; }
+
+    @keyframes up  { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+    @keyframes rot { to { transform:rotate(360deg); } }
+
+    @media (max-width: 420px) {
+      .card { padding: 24px 16px; border-radius: 0; border-left: none; border-right: none; }
+      .pin-cell { width: 40px; height: 48px; flex: 0 0 40px; font-size: 20px; }
+      .pin-row { gap: 6px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="#">
+    <div class="logo-mark">
+      <svg width="14" height="11" viewBox="0 0 14 11" fill="none">
+        <path d="M1 9.5l3-7 2.5 5 2-3 2.5 5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    Origin-PT
+  </a>
+</header>
+
+<main>
+  <div class="card">
+    <div class="steps">
+      <div class="dot done"></div>
+      <div class="dot active"></div>
+      <div class="dot" id="d2"></div>
+    </div>
+
+    <!-- PIN 入力 -->
+    <div class="sec on" id="s-pin">
+      <h1 id="t-title">確認コードを入力</h1>
+      <p class="sub" id="t-sub">メールに届いた6桁のコードを入力してください（5分で失効）</p>
+
+      <div class="pin-row">
+        <input class="pin-cell" id="p0" maxlength="1" inputmode="numeric" autocomplete="one-time-code">
+        <input class="pin-cell" id="p1" maxlength="1" inputmode="numeric">
+        <input class="pin-cell" id="p2" maxlength="1" inputmode="numeric">
+        <input class="pin-cell" id="p3" maxlength="1" inputmode="numeric">
+        <input class="pin-cell" id="p4" maxlength="1" inputmode="numeric">
+        <input class="pin-cell" id="p5" maxlength="1" inputmode="numeric">
+      </div>
+
+      <div class="msg err" id="pin-err"></div>
+
+      <button class="btn btn-solid" id="verify-btn" onclick="confirmPin()">
+        <div class="spin" id="verify-spin"></div>
+        <span id="t-btn">認証する</span>
+      </button>
+
+      <p class="resend">
+        <span id="t-r1">コードが届かない場合は</span>
+        <a onclick="goBack()" id="t-r2">最初からやり直す</a>
+      </p>
+    </div>
+
+    <!-- 完了 -->
+    <div class="sec" id="s-done">
+      <div class="ok-wrap">
+        <div class="ok-icon">✅</div>
+        <h1 id="t-ok-title">認証完了</h1>
+        <p class="sub" style="margin-top:8px" id="t-ok-sub">Discordに戻って認証結果を確認してください。</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer id="t-foot">Origin-PT Verify System</footer>
+
+<script>
+  const API_BASE = "https://auth.pf-furan.com";
+
+  const params = new URLSearchParams(location.search);
+  const STATE  = params.get("state") || "";
+  const LANG   = params.get("lang") === "en" ? "en" : "ja";
+
+  const T = {
+    ja: {
+      title: "確認コードを入力",
+      sub:   "メールに届いた6桁のコードを入力してください（5分で失効）",
+      btn:   "認証する",
+      r1: "コードが届かない場合は", r2: "最初からやり直す",
+      okTitle: "認証完了", okSub: "Discordに戻って認証結果を確認してください。",
+      foot:  "Origin-PT Verify System",
+      errPin:     "コードが正しくありません",
+      errExpired: "コードが期限切れです。最初からやり直してください",
+      errSession: "セッションが無効または期限切れです",
+      errTooMany: "試行回数超過。最初からやり直してください",
+    },
+    en: {
+      title: "Enter verification code",
+      sub:   "Enter the 6-digit code from your email (expires in 5 minutes)",
+      btn:   "Verify",
+      r1: "Didn't receive it? ", r2: "Start over",
+      okTitle: "Verified", okSub: "Return to Discord to see your verification result.",
+      foot:  "Origin-PT Verify System",
+      errPin:     "Incorrect code",
+      errExpired: "Code has expired. Please start over",
+      errSession: "Session invalid or expired",
+      errTooMany: "Too many attempts. Please start over",
+    },
+  }[LANG];
+
+  document.documentElement.lang = LANG;
+  const $ = id => document.getElementById(id);
+  const setText = (id, t) => { const el=$(id); if(el) el.textContent=t; };
+  setText("t-title",    T.title);
+  setText("t-sub",      T.sub);
+  setText("t-btn",      T.btn);
+  setText("t-r1",       T.r1);
+  setText("t-r2",       T.r2);
+  setText("t-ok-title", T.okTitle);
+  setText("t-ok-sub",   T.okSub);
+  setText("t-foot",     T.foot);
+
+  /* ── PIN cells ── */
+  const cells = [0,1,2,3,4,5].map(i => $(`p${i}`));
+  cells.forEach((c, i) => {
+    c.addEventListener("keydown", e => {
+      if (e.key === "Backspace" && !c.value && i > 0) {
+        cells[i-1].value = "";
+        cells[i-1].classList.remove("filled");
+        cells[i-1].focus();
+      }
+    });
+    c.addEventListener("input", () => {
+      c.value = c.value.replace(/\D/g, "").slice(-1);
+      c.classList.toggle("filled", !!c.value);
+      if (c.value && i < 5) cells[i+1].focus();
+      if (cells.every(x => x.value)) confirmPin();
+    });
+    c.addEventListener("paste", e => {
+      const text = (e.clipboardData || window.clipboardData).getData("text").replace(/\D/g, "");
+      if (text.length >= 6) {
+        e.preventDefault();
+        text.slice(0, 6).split("").forEach((ch, j) => {
+          cells[j].value = ch;
+          cells[j].classList.add("filled");
+        });
+        cells[5].focus();
+        confirmPin();
+      }
+    });
+  });
+
+  const pinVal = () => cells.map(c => c.value).join("");
+
+  function showErr(msg) {
+    const el = $("pin-err");
+    el.textContent = msg;
+    el.style.display = "block";
+  }
+  function hideErr() { $("pin-err").style.display = "none"; }
+  function setLoad(on) {
+    $("verify-btn").disabled = on;
+    $("verify-spin").style.display = on ? "block" : "none";
+  }
+
+  async function confirmPin() {
+    hideErr();
+    const pin = pinVal();
+    if (pin.length < 6) return;
+    setLoad(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/verify/confirm-pin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: STATE, pin }),
+      });
+      if (res.ok) {
+        $("s-pin").classList.remove("on");
+        $("s-done").classList.add("on");
+        $("d2").classList.add("done");
+        $("d2").classList.remove("active");
+      } else {
+        const d = await res.json().catch(() => ({}));
+        const msg = d.error === "PIN expired"                ? T.errExpired
+                  : d.error === "Invalid or expired session" ? T.errSession
+                  : d.error === "Too many attempts"          ? T.errTooMany
+                  : d.remaining !== undefined
+                    ? `${T.errPin}（残り${d.remaining}回）`
+                  : T.errPin;
+        showErr(msg);
+        cells.forEach(c => { c.value = ""; c.classList.remove("filled"); });
+        cells[0].focus();
+      }
+    } catch { showErr(T.errPin); }
+    finally { setLoad(false); }
+  }
+
+  function goBack() {
+    location.href = `verify.html?state=${encodeURIComponent(STATE)}&lang=${LANG}`;
+  }
+</script>
+</body>
+</html>
